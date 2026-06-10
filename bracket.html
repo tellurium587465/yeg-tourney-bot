@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YeG Tourney - 大会ブラケット</title>
+<style>
+  :root {
+    --accent: #2563eb;
+    --bg: #ffffff;
+    --card-bg: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #94a3b8;
+    --win: #16a34a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  header h1 {
+    font-size: 1.4rem;
+    margin: 0 0 4px;
+  }
+  .status {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .updated {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .bracket {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+  }
+  .round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 16px;
+    min-width: 220px;
+  }
+  .round-title {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .match {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card-bg);
+    overflow: hidden;
+    font-size: 0.9rem;
+  }
+  .match .match-id {
+    font-size: 0.7rem;
+    color: var(--muted);
+    padding: 4px 10px 0;
+  }
+  .player {
+    padding: 8px 10px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+  }
+  .player:first-of-type { border-top: none; margin-top: 4px; }
+  .player.winner {
+    font-weight: 700;
+    color: var(--win);
+  }
+  .player.bye {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    padding: 40px 0;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1 id="tournament-name">読み込み中...</h1>
+    <span class="status" id="tournament-status">-</span>
+    <div class="updated" id="updated-at"></div>
+  </header>
+
+  <div id="bracket-root"></div>
+
+  <script>
+    const STATUS_LABELS = {
+      draft: "準備中",
+      entry_open: "エントリー受付中",
+      entry_closed: "エントリー締切",
+      in_progress: "進行中",
+      finished: "終了",
+    };
+
+    function playerLabel(p) {
+      if (!p) return "BYE";
+      return p.name;
+    }
+
+    function render(data) {
+      document.getElementById("tournament-name").textContent =
+        data.tournament_name || "大会未作成";
+      document.getElementById("tournament-status").textContent =
+        STATUS_LABELS[data.status] || data.status;
+      document.getElementById("updated-at").textContent = data.updated_at
+        ? `最終更新: ${data.updated_at.replace("T", " ")}`
+        : "";
+
+      const root = document.getElementById("bracket-root");
+      root.innerHTML = "";
+
+      if (!data.matches || data.matches.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "まだブラケットが生成されていません。";
+        root.appendChild(empty);
+        return;
+      }
+
+      const rounds = [...new Set(data.matches.map((m) => m.round))].sort(
+        (a, b) => a - b
+      );
+
+      const bracket = document.createElement("div");
+      bracket.className = "bracket";
+
+      rounds.forEach((r) => {
+        const roundDiv = document.createElement("div");
+        roundDiv.className = "round";
+
+        const title = document.createElement("div");
+        title.className = "round-title";
+        title.textContent = r === rounds[rounds.length - 1] ? "決勝" : `Round ${r}`;
+        roundDiv.appendChild(title);
+
+        data.matches
+          .filter((m) => m.round === r)
+          .sort((a, b) => a.match_number - b.match_number)
+          .forEach((m) => {
+            const matchDiv = document.createElement("div");
+            matchDiv.className = "match";
+
+            const idDiv = document.createElement("div");
+            idDiv.className = "match-id";
+            idDiv.textContent = m.id;
+            matchDiv.appendChild(idDiv);
+
+            [1, 2].forEach((slot) => {
+              const player = slot === 1 ? m.player1 : m.player2;
+              const pDiv = document.createElement("div");
+              pDiv.className = "player";
+              if (m.winner === slot) pDiv.classList.add("winner");
+              if (!player) pDiv.classList.add("bye");
+              pDiv.textContent = playerLabel(player);
+              matchDiv.appendChild(pDiv);
+            });
+
+            roundDiv.appendChild(matchDiv);
+          });
+
+        bracket.appendChild(roundDiv);
+      });
+
+      root.appendChild(bracket);
+    }
+
+    async function load() {
+      try {
+        const res = await fetch(`tournament.json?_=${Date.now()}`);
+        const data = await res.json();
+        render(data);
+      } catch (e) {
+        console.error("読み込みエラー", e);
+      }
+    }
+
+    load();
+    setInterval(load, 60000);
+  </script>
+</body>
+</html>
