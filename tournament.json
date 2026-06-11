@@ -1,6 +1,6 @@
 {
   "tournament_name": "test",
-  "status": "entry_open",
+  "status": "entry_closed",
   "participants": [
     {
       "user_id": "787098905757089794",
@@ -32,6 +32,6 @@
     }
   ],
   "matches": [],
-  "updated_at": "2026-06-11T16:13:33",
+  "updated_at": "2026-06-11T16:13:52",
   "_history": []
 }
