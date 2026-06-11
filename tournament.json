@@ -1,8 +1,16 @@
 {
   "tournament_name": "testtaikai",
   "status": "entry_open",
-  "participants": [],
+  "participants": [
+    {
+      "user_id": "787098905757089794",
+      "name": "test1",
+      "discord_name": "テルル",
+      "status": "active",
+      "entered_at": "2026/06/11 23:10"
+    }
+  ],
   "matches": [],
-  "updated_at": "2026-06-11T23:09:52",
+  "updated_at": "2026-06-11T23:10:14",
   "_history": []
 }
