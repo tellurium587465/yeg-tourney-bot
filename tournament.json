@@ -1,6 +1,6 @@
 {
   "tournament_name": "testtaikai",
-  "status": "entry_open",
+  "status": "entry_closed",
   "participants": [
     {
       "user_id": "787098905757089794",
@@ -18,6 +18,6 @@
     }
   ],
   "matches": [],
-  "updated_at": "2026-06-11T23:10:35",
+  "updated_at": "2026-06-11T23:11:37",
   "_history": []
 }
