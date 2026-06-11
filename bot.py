@@ -88,11 +88,11 @@ def save_tournament(data: dict, action: str = "update", operator: str = ""):
             subprocess.run(["git", "commit", "-m", action], cwd=GIT_REPO_DIR, check=False)
             subprocess.run(["git", "push"], cwd=GIT_REPO_DIR, check=True)
         except subprocess.CalledProcessError as e:
-            print(f"⚠️ git push に失敗しました: {e}")
+            print(f"git push に失敗しました: {e}")
 
     sheets_ok, sheets_err = sheets.sync_all(data, action=action, operator=operator)
     if not sheets_ok and sheets.sheets_enabled():
-        print(f"⚠️ スプレッドシート同期に失敗: {sheets_err}")
+        print(f"スプレッドシート同期に失敗: {sheets_err}")
     return sheets_ok, sheets_err
 
 
@@ -111,7 +111,7 @@ def sync_note(sheets_ok: bool) -> str:
     """運営向け：スプレッドシート同期結果のひとこと"""
     if not sheets.sheets_enabled():
         return ""
-    return "\n📋 スプレッドシートにも反映しました。" if sheets_ok else "\n⚠️ スプレッドシート同期に失敗しました（データ自体は保存済み）。"
+    return "\nスプレッドシートに同期しました。" if sheets_ok else "\nスプレッドシート同期に失敗しました（データ自体は保存済み）。"
 
 
 # =====================================
@@ -278,7 +278,7 @@ def is_admin():
         role = discord.utils.get(interaction.user.roles, name=ADMIN_ROLE_NAME)
         if role is None:
             await interaction.response.send_message(
-                f"❌ この操作はサーバー管理者、または「{ADMIN_ROLE_NAME}」ロールのみ実行できます。",
+                f"この操作はサーバー管理者、または「{ADMIN_ROLE_NAME}」ロールのみ実行できます。",
                 ephemeral=True,
             )
             return False
@@ -302,18 +302,21 @@ class EntryModal(discord.ui.Modal, title="大会エントリー"):
         data = load_tournament()
 
         if data["status"] != "entry_open":
-            await interaction.response.send_message("❌ 現在エントリー受付中ではありません。", ephemeral=True)
+            await interaction.response.send_message("現在エントリー受付中ではありません。", ephemeral=True)
             return
 
         user_id = str(interaction.user.id)
         for p in data["participants"]:
             if p["user_id"] == user_id:
                 await interaction.response.send_message(
-                    f"❌ すでに「{p['name']}」としてエントリー済みです。\n"
+                    f"すでに「{p['name']}」としてエントリー済みです。\n"
                     "名前を変更したい場合は運営にお声がけください。",
                     ephemeral=True,
                 )
                 return
+
+        # 保存（シート同期・git push）は数秒かかるため、先にdeferして3秒制限を回避
+        await interaction.response.defer(ephemeral=True)
 
         data["participants"].append({
             "user_id": user_id,
@@ -324,10 +327,10 @@ class EntryModal(discord.ui.Modal, title="大会エントリー"):
         })
         save_tournament(data, f"エントリー: {self.game_name.value}", operator=interaction.user.display_name)
 
-        await interaction.response.send_message(
-            f"✅ エントリー完了！ようこそ **{self.game_name.value}** さん 🎮\n"
-            f"現在の参加者数: **{len(data['participants'])}人**\n"
-            "対戦表が公開されたら `/tourney-myresult` で自分の試合を確認できます。",
+        await interaction.followup.send(
+            f"エントリーを受け付けました（{self.game_name.value}）。\n"
+            f"現在の参加者数: {len(data['participants'])}人\n"
+            "対戦表が公開されたら /tourney-myresult で自分の試合を確認できます。",
             ephemeral=True,
         )
 
@@ -336,7 +339,7 @@ class EntryView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="エントリーする", style=discord.ButtonStyle.primary, emoji="🎮", custom_id="yeg_tourney_entry")
+    @discord.ui.button(label="エントリーする", style=discord.ButtonStyle.primary, custom_id="yeg_tourney_entry")
     async def entry_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(EntryModal())
 
@@ -353,12 +356,13 @@ class ConfirmResetView(discord.ui.View):
         if interaction.user.id != self.author_id:
             await interaction.response.send_message("コマンドを実行した本人のみ操作できます。", ephemeral=True)
             return
+        # 保存（シート同期・git push）は数秒かかるため、先に応答してDiscordの3秒制限を回避する
+        await interaction.response.edit_message(content="リセット処理中...", view=None)
         data = empty_tournament()
         save_tournament(data, "大会リセット", operator=interaction.user.display_name)
-        await interaction.response.edit_message(
-            content="🗑️ 大会データをリセットしました。`/tourney-create` から再度作成できます。\n"
+        await interaction.edit_original_response(
+            content="大会データをリセットしました。`/tourney-create` から再度作成できます。\n"
                     "（直前までのデータは `backups/` フォルダに残っています）",
-            view=None,
         )
 
     @discord.ui.button(label="キャンセル", style=discord.ButtonStyle.secondary)
@@ -387,9 +391,9 @@ async def on_ready():
         await bot.tree.sync()
     if REMINDER_MINUTES > 0 and REMINDER_CHANNEL_ID and not reminder_loop.is_running():
         reminder_loop.start()
-    print(f"✅ ログイン成功: {bot.user}")
-    print(f"   スプレッドシート連携: {'有効' if sheets.sheets_enabled() else '無効（SPREADSHEET_ID未設定）'}")
-    print(f"   git自動push: {'有効' if GIT_AUTO_PUSH else '無効'}")
+    print(f"ログイン成功: {bot.user}")
+    print(f"  スプレッドシート連携: {'有効' if sheets.sheets_enabled() else '無効（SPREADSHEET_ID未設定）'}")
+    print(f"  git自動push: {'有効' if GIT_AUTO_PUSH else '無効'}")
 
 
 @tasks.loop(minutes=max(REMINDER_MINUTES, 1))
@@ -406,7 +410,7 @@ async def reminder_loop():
         channel = bot.get_channel(int(REMINDER_CHANNEL_ID))
         if channel:
             await channel.send(
-                f"⏰ リマインド: `{match['id']}` "
+                f"結果未入力の試合があります: `{match['id']}` "
                 f"**{player_label(match['player1'])} vs {player_label(match['player2'])}** の結果が未入力です。\n"
                 f"終了していたら `/tourney-result` で入力してください。"
             )
@@ -418,21 +422,22 @@ async def reminder_loop():
 @app_commands.describe(name="大会名")
 @is_admin()
 async def tourney_create(interaction: discord.Interaction, name: str):
+    await interaction.response.defer()
     data = empty_tournament()
     data["tournament_name"] = name
     ok, _ = save_tournament(data, f"大会作成: {name}", operator=interaction.user.display_name)
 
     embed = discord.Embed(
-        title=f"🏆 {name}",
+        title=name,
         description="エントリー受付準備中です。",
         color=discord.Color.blue(),
     )
     embed.add_field(
-        name="▶ 運営の次のステップ",
+        name="次のステップ",
         value="`/tourney-open` を実行するとエントリー受付が始まります。" + sync_note(ok),
         inline=False,
     )
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 
 # --- /tourney-open ---
@@ -442,20 +447,27 @@ async def tourney_open(interaction: discord.Interaction):
     data = load_tournament()
     if not data["tournament_name"]:
         await interaction.response.send_message(
-            "❌ 大会がまだありません。先に `/tourney-create` で作成してください。", ephemeral=True
+            "大会がまだありません。先に `/tourney-create` で作成してください。", ephemeral=True
         )
         return
 
+    await interaction.response.defer()
     data["status"] = "entry_open"
     save_tournament(data, "エントリー受付開始", operator=interaction.user.display_name)
 
     embed = discord.Embed(
-        title=f"📢 {data['tournament_name']} エントリー受付中！",
-        description="下の **🎮 エントリーする** ボタンを押して、表示名を入力してください。\n"
+        title=f"{data['tournament_name']} エントリー受付中",
+        description="下の「エントリーする」ボタンを押して、表示名を入力してください。\n"
                     "（1人1回まで。重複エントリーは自動でブロックされます）",
         color=discord.Color.green(),
     )
-    await interaction.response.send_message(embed=embed, view=EntryView())
+    embed.add_field(
+        name="運営の次のステップ",
+        value="参加者が集まったら `/tourney-close` で受付を締め切ります。\n"
+              "現在の参加状況は `/tourney-status` で確認できます。",
+        inline=False,
+    )
+    await interaction.followup.send(embed=embed, view=EntryView())
 
 
 # --- /tourney-close ---
@@ -464,24 +476,25 @@ async def tourney_open(interaction: discord.Interaction):
 async def tourney_close(interaction: discord.Interaction):
     data = load_tournament()
     if data["status"] != "entry_open":
-        await interaction.response.send_message("❌ エントリー受付中ではありません。", ephemeral=True)
+        await interaction.response.send_message("エントリー受付中ではありません。", ephemeral=True)
         return
 
+    await interaction.response.defer()
     data["status"] = "entry_closed"
     ok, _ = save_tournament(data, "エントリー締切", operator=interaction.user.display_name)
 
     names = "\n".join(f"{i}. {p['name']}" for i, p in enumerate(data["participants"], 1)) or "（参加者なし）"
     embed = discord.Embed(
-        title=f"🔒 {data['tournament_name']} エントリー締切",
-        description=f"参加者数: **{len(data['participants'])}人**\n\n{names}",
+        title=f"{data['tournament_name']} エントリー締切",
+        description=f"参加者数: {len(data['participants'])}人\n\n{names}",
         color=discord.Color.orange(),
     )
     embed.add_field(
-        name="▶ 運営の次のステップ",
+        name="次のステップ",
         value="`/tourney-seed` で対戦表を生成します（ランダム or 申込順）。" + sync_note(ok),
         inline=False,
     )
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 
 # --- /tourney-seed ---
@@ -496,15 +509,16 @@ async def tourney_seed(interaction: discord.Interaction, mode: app_commands.Choi
     data = load_tournament()
     if data["status"] not in ("entry_closed", "in_progress"):
         await interaction.response.send_message(
-            "❌ 先に `/tourney-close` でエントリーを締め切ってください。", ephemeral=True
+            "先に `/tourney-close` でエントリーを締め切ってください。", ephemeral=True
         )
         return
 
     entrants = active_participants(data)
     if len(entrants) < 2:
-        await interaction.response.send_message("❌ 参加者が2人未満のため対戦表を作れません。", ephemeral=True)
+        await interaction.response.send_message("参加者が2人未満のため対戦表を作れません。", ephemeral=True)
         return
 
+    await interaction.response.defer()
     push_history(data)
     data["matches"] = generate_bracket(entrants, mode.value)
     data["status"] = "in_progress"
@@ -519,16 +533,16 @@ async def tourney_seed(interaction: discord.Interaction, mode: app_commands.Choi
         lines.append("")
 
     embed = discord.Embed(
-        title=f"🎲 対戦表が決まりました！（{mode.name}）",
+        title=f"対戦表（{mode.name}）",
         description="\n".join(lines),
         color=discord.Color.purple(),
     )
     embed.add_field(
-        name="▶ 運営の次のステップ",
+        name="次のステップ",
         value="`/tourney-next` で最初の試合を呼び出し、終わったら `/tourney-result` で結果入力。" + sync_note(ok),
         inline=False,
     )
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 
 # --- /tourney-result ---
@@ -545,20 +559,21 @@ async def tourney_result(interaction: discord.Interaction, match_id: str, winner
     if match is None:
         valid = ", ".join(m["id"] for m in get_pending_matches(data["matches"])) or "なし"
         await interaction.response.send_message(
-            f"❌ 試合 `{match_id}` が見つかりません。\n現在入力可能な試合: {valid}", ephemeral=True
+            f"試合 `{match_id}` が見つかりません。\n現在入力可能な試合: {valid}", ephemeral=True
         )
         return
 
     if not match["player1"] or not match["player2"]:
-        await interaction.response.send_message("❌ まだ両者が確定していない試合です。", ephemeral=True)
+        await interaction.response.send_message("まだ両者が確定していない試合です。", ephemeral=True)
         return
 
     if match["winner"] is not None:
         await interaction.response.send_message(
-            "❌ すでに結果が登録されています。間違えた場合は `/tourney-undo` で取り消せます。", ephemeral=True
+            "すでに結果が登録されています。間違えた場合は `/tourney-undo` で取り消せます。", ephemeral=True
         )
         return
 
+    await interaction.response.defer()
     push_history(data)
     advance_winner(data["matches"], match, winner.value, score=score)
 
@@ -573,7 +588,7 @@ async def tourney_result(interaction: discord.Interaction, match_id: str, winner
 
     winner_name = player_label(match["player1"] if winner.value == 1 else match["player2"])
     embed = discord.Embed(
-        title=f"✅ {match['id']} 結果登録",
+        title=f"{match['id']} 結果登録",
         description=f"勝者: **{winner_name}**" + (f"\nスコア: {score}" if score else ""),
         color=discord.Color.green(),
     )
@@ -581,8 +596,8 @@ async def tourney_result(interaction: discord.Interaction, match_id: str, winner
     if finished:
         champion = get_champion(data["matches"])
         embed.add_field(
-            name="🎉 大会終了！",
-            value=f"優勝: **{player_label(champion)}** 🏆\nお疲れさまでした！\n"
+            name="大会終了",
+            value=f"優勝: **{player_label(champion)}**\n"
                   f"`/tourney-export` で結果一覧を出力できます。" + sync_note(ok),
             inline=False,
         )
@@ -590,12 +605,12 @@ async def tourney_result(interaction: discord.Interaction, match_id: str, winner
         nxt = get_next_match(data["matches"])
         if nxt:
             embed.add_field(
-                name="▶ 次の試合",
+                name="次の試合",
                 value=f"`{nxt['id']}` {player_label(nxt['player1'])} vs {player_label(nxt['player2'])}\n"
                       f"`/tourney-next` で対戦者を呼び出せます。" + sync_note(ok),
                 inline=False,
             )
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 
 # --- /tourney-undo ---
@@ -604,16 +619,17 @@ async def tourney_result(interaction: discord.Interaction, match_id: str, winner
 async def tourney_undo(interaction: discord.Interaction):
     data = load_tournament()
     if not data["_history"]:
-        await interaction.response.send_message("❌ 取り消せる操作がありません。", ephemeral=True)
+        await interaction.response.send_message("取り消せる操作がありません。", ephemeral=True)
         return
 
+    await interaction.response.defer()
     snapshot = data["_history"].pop()
     data["matches"] = snapshot["matches"]
     data["participants"] = snapshot["participants"]
     data["status"] = snapshot["status"]
     ok, _ = save_tournament(data, "操作の取り消し", operator=interaction.user.display_name)
 
-    await interaction.response.send_message("↩️ 直前の操作を取り消しました。`/tourney-status` で現状を確認してください。" + sync_note(ok))
+    await interaction.followup.send("直前の操作を取り消しました。`/tourney-status` で現状を確認してください。" + sync_note(ok))
 
 
 # --- /tourney-dq ---
@@ -630,10 +646,11 @@ async def tourney_dq(interaction: discord.Interaction, name: str):
     if target is None:
         names = ", ".join(p["name"] for p in active_participants(data)) or "なし"
         await interaction.response.send_message(
-            f"❌ 「{name}」が見つかりません。\n現在の参加者: {names}", ephemeral=True
+            f"「{name}」が見つかりません。\n現在の参加者: {names}", ephemeral=True
         )
         return
 
+    await interaction.response.defer()
     push_history(data)
     target["status"] = "dq"
 
@@ -657,8 +674,8 @@ async def tourney_dq(interaction: discord.Interaction, name: str):
             data["status"] = "finished"
 
     ok, _ = save_tournament(data, f"棄権処理: {name}", operator=interaction.user.display_name)
-    await interaction.response.send_message(
-        f"🚪 **{name}** さんを棄権扱いにしました。{msg_extra}\n間違えた場合は `/tourney-undo` で戻せます。" + sync_note(ok)
+    await interaction.followup.send(
+        f"**{name}** さんを棄権扱いにしました。{msg_extra}\n間違えた場合は `/tourney-undo` で戻せます。" + sync_note(ok)
     )
 
 
@@ -667,12 +684,12 @@ async def tourney_dq(interaction: discord.Interaction, name: str):
 async def tourney_next(interaction: discord.Interaction):
     data = load_tournament()
     if data["status"] != "in_progress":
-        await interaction.response.send_message("❌ 大会は進行中ではありません。", ephemeral=True)
+        await interaction.response.send_message("大会は進行中ではありません。", ephemeral=True)
         return
 
     match = get_next_match(data["matches"])
     if match is None:
-        await interaction.response.send_message("✅ 現在対戦可能な試合はありません（結果入力待ち、または全試合終了）。")
+        await interaction.response.send_message("現在対戦可能な試合はありません（結果入力待ち、または全試合終了）。")
         return
 
     p1, p2 = match["player1"], match["player2"]
@@ -680,9 +697,15 @@ async def tourney_next(interaction: discord.Interaction):
     mention2 = f"<@{p2['user_id']}>" if p2.get("user_id") else p2["name"]
 
     embed = discord.Embed(
-        title=f"⚔️ 次の試合: {match['id']} (Round {match['round']})",
-        description=f"**{p1['name']}** vs **{p2['name']}**\n\n準備ができたら試合を開始してください！",
+        title=f"次の試合: {match['id']} (Round {match['round']})",
+        description=f"**{p1['name']}** vs **{p2['name']}**\n\n準備ができたら試合を開始してください。",
         color=discord.Color.gold(),
+    )
+    embed.add_field(
+        name="運営の次のステップ",
+        value=f"試合が終わったら `/tourney-result {match['id']} <勝者>` で結果を入力します。\n"
+              "入力すると勝者が自動で次の試合に進み、続く試合が案内されます。",
+        inline=False,
     )
     await interaction.response.send_message(content=f"{mention1} {mention2}", embed=embed)
 
@@ -699,11 +722,11 @@ async def tourney_myresult(interaction: discord.Interaction):
             me = p
             break
     if me is None:
-        await interaction.response.send_message("❌ あなたはこの大会にエントリーしていません。", ephemeral=True)
+        await interaction.response.send_message("あなたはこの大会にエントリーしていません。", ephemeral=True)
         return
 
     if me.get("status") == "dq":
-        await interaction.response.send_message("🚪 あなたは棄権扱いになっています。詳細は運営にお問い合わせください。", ephemeral=True)
+        await interaction.response.send_message("あなたは棄権扱いになっています。詳細は運営にお問い合わせください。", ephemeral=True)
         return
 
     lines = []
@@ -717,12 +740,12 @@ async def tourney_myresult(interaction: discord.Interaction):
         if m["winner"] is None:
             if p1 and p2:
                 upcoming = m
-                lines.append(f"⏳ `{m['id']}` vs **{player_label(opponent)}** — 対戦待ち")
+                lines.append(f"`{m['id']}` vs **{player_label(opponent)}** — 対戦待ち")
             else:
-                lines.append(f"🔜 `{m['id']}` — 対戦相手が決まり次第お知らせします")
+                lines.append(f"`{m['id']}` — 対戦相手が決まり次第お知らせします")
         else:
             won = (m["winner"] == 1 and p1["user_id"] == user_id) or (m["winner"] == 2 and p2 and p2["user_id"] == user_id)
-            mark = "🏅 勝利" if won else "💔 敗北"
+            mark = "勝利" if won else "敗北"
             score = f"（{m['score']}）" if m.get("score") else ""
             lines.append(f"{mark} `{m['id']}` vs {player_label(opponent)} {score}")
 
@@ -730,7 +753,7 @@ async def tourney_myresult(interaction: discord.Interaction):
         lines.append("まだ対戦表が生成されていません。しばらくお待ちください。")
 
     embed = discord.Embed(
-        title=f"🎮 {me['name']} さんの戦績",
+        title=f"{me['name']} さんの戦績",
         description="\n".join(lines),
         color=discord.Color.gold() if upcoming else discord.Color.blurple(),
     )
@@ -742,7 +765,7 @@ async def tourney_myresult(interaction: discord.Interaction):
 async def tourney_status(interaction: discord.Interaction):
     data = load_tournament()
     if not data["tournament_name"]:
-        await interaction.response.send_message("❌ 大会が作成されていません。", ephemeral=True)
+        await interaction.response.send_message("大会が作成されていません。", ephemeral=True)
         return
 
     status_label = {
@@ -758,7 +781,7 @@ async def tourney_status(interaction: discord.Interaction):
     progress = f"\n試合進行: **{done} / {total}**" if total else ""
 
     embed = discord.Embed(
-        title=f"📊 {data['tournament_name']}",
+        title=data['tournament_name'],
         description=f"状態: **{status_label}**\n参加者数: {len(active_participants(data))}人{progress}",
         color=discord.Color.blurple(),
     )
@@ -770,12 +793,32 @@ async def tourney_status(interaction: discord.Interaction):
             for m in sorted([x for x in data["matches"] if x["round"] == r], key=lambda x: x["match_number"]):
                 p1, p2 = player_label(m["player1"]), player_label(m["player2"])
                 if m["winner"] == 1:
-                    p1 = f"**{p1}** ✅"
+                    p1 = f"**{p1}**（勝）"
                 elif m["winner"] == 2:
-                    p2 = f"**{p2}** ✅"
+                    p2 = f"**{p2}**（勝）"
                 lines.append(f"`{m['id']}` {p1} vs {p2}")
             title = "決勝" if r == rounds[-1] else f"Round {r}"
             embed.add_field(name=title, value="\n".join(lines) or "-", inline=False)
+
+    if data["status"] == "draft":
+        guide = "`/tourney-open` でエントリー受付を開始します。"
+    elif data["status"] == "entry_open":
+        guide = "参加者が集まったら `/tourney-close` で受付を締め切ります。"
+    elif data["status"] == "entry_closed":
+        guide = "`/tourney-seed ランダム` または `/tourney-seed 申込順` で対戦表を作成します。"
+    elif data["status"] == "in_progress":
+        nxt = get_next_match(data["matches"])
+        if nxt:
+            guide = (f"次の試合: `{nxt['id']}` {player_label(nxt['player1'])} vs {player_label(nxt['player2'])}\n"
+                     f"`/tourney-next` で対戦者を呼び出し、終了後 `/tourney-result` で結果を入力します。")
+        else:
+            guide = "結果入力待ちの試合があります。`/tourney-result` で入力してください。"
+    elif data["status"] == "finished":
+        guide = "全試合が終了しました。`/tourney-export` で結果一覧を出力できます。"
+    else:
+        guide = ""
+    if guide:
+        embed.add_field(name="次の操作", value=guide, inline=False)
 
     await interaction.response.send_message(embed=embed)
 
@@ -786,7 +829,7 @@ async def tourney_status(interaction: discord.Interaction):
 async def tourney_export(interaction: discord.Interaction):
     data = load_tournament()
     if not data["tournament_name"]:
-        await interaction.response.send_message("❌ 大会が作成されていません。", ephemeral=True)
+        await interaction.response.send_message("大会が作成されていません。", ephemeral=True)
         return
 
     lines = [
@@ -813,11 +856,11 @@ async def tourney_export(interaction: discord.Interaction):
 
         champion = get_champion(data["matches"])
         if champion:
-            lines += ["", f"🏆 優勝: {champion['name']}"]
+            lines += ["", f"優勝: {champion['name']}"]
 
     buf = io.BytesIO("\n".join(lines).encode("utf-8"))
     fname = f"{data['tournament_name']}_結果_{datetime.now().strftime('%Y%m%d')}.txt"
-    await interaction.response.send_message("📄 結果を出力しました。", file=discord.File(buf, filename=fname))
+    await interaction.response.send_message("結果を出力しました。", file=discord.File(buf, filename=fname))
 
 
 # --- /tourney-reset ---
@@ -826,7 +869,7 @@ async def tourney_export(interaction: discord.Interaction):
 async def tourney_reset(interaction: discord.Interaction):
     data = load_tournament()
     await interaction.response.send_message(
-        f"⚠️ 「{data['tournament_name'] or '（無題）'}」のデータを**すべて削除**します。\n"
+        f"「{data['tournament_name'] or '（無題）'}」のデータを**すべて削除**します。\n"
         "参加者・対戦表・結果が消えます（バックアップは `backups/` に残ります）。よろしいですか？",
         view=ConfirmResetView(interaction.user.id),
         ephemeral=True,
