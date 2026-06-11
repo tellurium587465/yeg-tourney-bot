@@ -22,9 +22,16 @@
       "discord_name": "テルル",
       "status": "active",
       "entered_at": "2026/06/11 16:13"
+    },
+    {
+      "user_id": "787098905757089794",
+      "name": "test4",
+      "discord_name": "テルル",
+      "status": "active",
+      "entered_at": "2026/06/11 16:13"
     }
   ],
   "matches": [],
-  "updated_at": "2026-06-11T16:13:17",
+  "updated_at": "2026-06-11T16:13:33",
   "_history": []
 }
