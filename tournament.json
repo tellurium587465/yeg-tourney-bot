@@ -1,6 +1,6 @@
 {
   "tournament_name": "testtaikai",
-  "status": "in_progress",
+  "status": "finished",
   "participants": [
     {
       "user_id": "787098905757089794",
@@ -36,13 +36,13 @@
         "status": "active",
         "entered_at": "2026/06/11 23:10"
       },
-      "winner": null,
+      "winner": 2,
       "score": null,
       "next_match_id": null,
       "next_slot": null
     }
   ],
-  "updated_at": "2026-06-11T23:12:17",
+  "updated_at": "2026-06-11T23:15:11",
   "_history": [
     {
       "matches": [],
@@ -63,6 +63,50 @@
         }
       ],
       "status": "entry_closed"
+    },
+    {
+      "matches": [
+        {
+          "id": "R1M1",
+          "round": 1,
+          "match_number": 1,
+          "player1": {
+            "user_id": "787098905757089794",
+            "name": "test1",
+            "discord_name": "テルル",
+            "status": "active",
+            "entered_at": "2026/06/11 23:10"
+          },
+          "player2": {
+            "user_id": "714667457045856277",
+            "name": "poyo",
+            "discord_name": "NovelKaye",
+            "status": "active",
+            "entered_at": "2026/06/11 23:10"
+          },
+          "winner": null,
+          "score": null,
+          "next_match_id": null,
+          "next_slot": null
+        }
+      ],
+      "participants": [
+        {
+          "user_id": "787098905757089794",
+          "name": "test1",
+          "discord_name": "テルル",
+          "status": "active",
+          "entered_at": "2026/06/11 23:10"
+        },
+        {
+          "user_id": "714667457045856277",
+          "name": "poyo",
+          "discord_name": "NovelKaye",
+          "status": "active",
+          "entered_at": "2026/06/11 23:10"
+        }
+      ],
+      "status": "in_progress"
     }
   ]
 }
