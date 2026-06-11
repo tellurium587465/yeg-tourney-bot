@@ -73,7 +73,7 @@
         "status": "active",
         "entered_at": "2026/06/11 16:12"
       },
-      "winner": null,
+      "winner": 2,
       "score": null,
       "next_match_id": "R2M1",
       "next_slot": 2
@@ -89,14 +89,20 @@
         "status": "active",
         "entered_at": "2026/06/11 15:58"
       },
-      "player2": null,
+      "player2": {
+        "user_id": "787098905757089794",
+        "name": "test2",
+        "discord_name": "テルル",
+        "status": "active",
+        "entered_at": "2026/06/11 16:12"
+      },
       "winner": null,
       "score": null,
       "next_match_id": null,
       "next_slot": null
     }
   ],
-  "updated_at": "2026-06-11T16:15:30",
+  "updated_at": "2026-06-11T16:16:16",
   "_history": [
     {
       "matches": [],
@@ -185,6 +191,104 @@
           "round": 2,
           "match_number": 1,
           "player1": null,
+          "player2": null,
+          "winner": null,
+          "score": null,
+          "next_match_id": null,
+          "next_slot": null
+        }
+      ],
+      "participants": [
+        {
+          "user_id": "787098905757089794",
+          "name": "test1",
+          "discord_name": "テルル",
+          "status": "active",
+          "entered_at": "2026/06/11 15:58"
+        },
+        {
+          "user_id": "787098905757089794",
+          "name": "test2",
+          "discord_name": "テルル",
+          "status": "active",
+          "entered_at": "2026/06/11 16:12"
+        },
+        {
+          "user_id": "787098905757089794",
+          "name": "test3",
+          "discord_name": "テルル",
+          "status": "active",
+          "entered_at": "2026/06/11 16:13"
+        },
+        {
+          "user_id": "787098905757089794",
+          "name": "test4",
+          "discord_name": "テルル",
+          "status": "active",
+          "entered_at": "2026/06/11 16:13"
+        }
+      ],
+      "status": "in_progress"
+    },
+    {
+      "matches": [
+        {
+          "id": "R1M1",
+          "round": 1,
+          "match_number": 1,
+          "player1": {
+            "user_id": "787098905757089794",
+            "name": "test1",
+            "discord_name": "テルル",
+            "status": "active",
+            "entered_at": "2026/06/11 15:58"
+          },
+          "player2": {
+            "user_id": "787098905757089794",
+            "name": "test3",
+            "discord_name": "テルル",
+            "status": "active",
+            "entered_at": "2026/06/11 16:13"
+          },
+          "winner": 1,
+          "score": null,
+          "next_match_id": "R2M1",
+          "next_slot": 1
+        },
+        {
+          "id": "R1M2",
+          "round": 1,
+          "match_number": 2,
+          "player1": {
+            "user_id": "787098905757089794",
+            "name": "test4",
+            "discord_name": "テルル",
+            "status": "active",
+            "entered_at": "2026/06/11 16:13"
+          },
+          "player2": {
+            "user_id": "787098905757089794",
+            "name": "test2",
+            "discord_name": "テルル",
+            "status": "active",
+            "entered_at": "2026/06/11 16:12"
+          },
+          "winner": null,
+          "score": null,
+          "next_match_id": "R2M1",
+          "next_slot": 2
+        },
+        {
+          "id": "R2M1",
+          "round": 2,
+          "match_number": 1,
+          "player1": {
+            "user_id": "787098905757089794",
+            "name": "test1",
+            "discord_name": "テルル",
+            "status": "active",
+            "entered_at": "2026/06/11 15:58"
+          },
           "player2": null,
           "winner": null,
           "score": null,
