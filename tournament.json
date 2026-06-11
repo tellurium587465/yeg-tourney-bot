@@ -1,8 +1,16 @@
 {
   "tournament_name": "test",
   "status": "entry_open",
-  "participants": [],
+  "participants": [
+    {
+      "user_id": "787098905757089794",
+      "name": "test1",
+      "discord_name": "テルル",
+      "status": "active",
+      "entered_at": "2026/06/11 15:58"
+    }
+  ],
   "matches": [],
-  "updated_at": "2026-06-11T15:58:05",
+  "updated_at": "2026-06-11T15:58:24",
   "_history": []
 }
