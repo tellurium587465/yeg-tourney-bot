@@ -8,9 +8,16 @@
       "discord_name": "テルル",
       "status": "active",
       "entered_at": "2026/06/11 15:58"
+    },
+    {
+      "user_id": "787098905757089794",
+      "name": "test2",
+      "discord_name": "テルル",
+      "status": "active",
+      "entered_at": "2026/06/11 16:12"
     }
   ],
   "matches": [],
-  "updated_at": "2026-06-11T16:08:25",
+  "updated_at": "2026-06-11T16:12:48",
   "_history": []
 }
